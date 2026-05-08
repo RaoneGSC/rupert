@@ -22,7 +22,7 @@ checkpoints/
 # Timings gerados automaticamente
 timings_*.json
 
-# Arquivos grandes e de mídia
+# Large media files
 *.mp4
 *.avi
 *.exe
@@ -30,6 +30,11 @@ timings_*.json
 *.bmp
 *.png
 *.jpg
+
+# Allow documentation images
+!docs/images/*.png
+!docs/images/*.jpg
+!docs/images/*.jpeg
 
 # IDE
 .vscode/
