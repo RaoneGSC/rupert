@@ -2,44 +2,42 @@ import serial
 import keyboard
 import time
 
-porta = "COM4"  # Ajuste para sua porta
+port = "COM4"  # adjust to your port
 baudrate = 115200
 
-ser = serial.Serial(porta, baudrate, timeout=0)  # timeout=0 para evitar fila
+ser = serial.Serial(port, baudrate, timeout=0)  # timeout=0 to avoid queue buildup
 
-tecla_anterior = None  # Armazena última tecla pressionada
-tempo_pressao = 0.2  # Tempo mínimo (em segundos) entre os comandos enquanto a tecla estiver pressionada
-tempo_ultimo_comando = 0  # Armazena o tempo do último comando enviado
+last_key = None        # stores last pressed key
+press_interval = 0.2   # minimum seconds between repeated commands while key is held
+last_command_time = 0  # stores time of last command sent
 
-print("Controle iniciado! Use W, A, S, D para movimentar. ESC para sair.")
+print("Control started! Use W, A, S, D to move. ESC to quit.")
 
 while True:
-    tecla_atual = None  # Reseta a tecla atual
-    tempo_atual = time.time()  # Obtém o tempo atual
+    current_key = None
+    current_time = time.time()
 
-    # Verifica teclas pressionadas
     if keyboard.is_pressed("w"):
-        tecla_atual = "w"
+        current_key = "w"
     elif keyboard.is_pressed("s"):
-        tecla_atual = "s"
+        current_key = "s"
     elif keyboard.is_pressed("a"):
-        tecla_atual = "a"
+        current_key = "a"
     elif keyboard.is_pressed("d"):
-        tecla_atual = "d"
-    
-    # Só envia um comando se a tecla mudou ou se a tecla foi pressionada por mais tempo que o intervalo
-    if tecla_atual and (tecla_atual != tecla_anterior or tempo_atual - tempo_ultimo_comando > tempo_pressao):
-        ser.write(tecla_atual.encode() + b"\n")
-        print(f"Enviado: {tecla_atual}")
-        tempo_ultimo_comando = tempo_atual  # Atualiza o tempo do último comando
-    
-    tecla_anterior = tecla_atual  # Atualiza a tecla anterior
+        current_key = "d"
 
-    # Sai com ESC
+    # send command only if key changed or held long enough
+    if current_key and (current_key != last_key or current_time - last_command_time > press_interval):
+        ser.write(current_key.encode() + b"\n")
+        print(f"Sent: {current_key}")
+        last_command_time = current_time
+
+    last_key = current_key
+
     if keyboard.is_pressed("esc"):
-        print("Saindo...")
+        print("Exiting...")
         break
 
-    time.sleep(0.05)  # Pequeno delay para suavizar a leitura
+    time.sleep(0.05)
 
 ser.close()

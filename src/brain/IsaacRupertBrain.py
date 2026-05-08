@@ -10,18 +10,17 @@ ART_PATH = "/World/Rupert"
 COM_PORT = "COM4"
 BAUD = 230400
 RAD_TO_DEG = 180.0 / np.pi
-PRINT_LOOP_SLEEP = 0.5   # tempo entre prints em segundos
-ANGLE_THRESHOLD_DEG = [0.15, 3.0, 3.0, 0.15, 0.15]  # cotovelo precisa de mais torque que o ombro
-MIN_SEND_INTERVAL = 0.02  # intervalo mínimo entre envios
-GRIP_IDX         = 4    # índice do servo de garra
-GRIP_HOLD_OFFSET = 10   # graus extras para manter pressão de aperto
-LOOP_SLEEP = 0.005        # estabilidade do loop
+PRINT_LOOP_SLEEP = 0.5   # seconds between debug prints
+ANGLE_THRESHOLD_DEG = [0.15, 3.0, 3.0, 0.15, 0.15]  # elbow needs more torque than shoulder
+MIN_SEND_INTERVAL = 0.02  # minimum interval between serial sends
+GRIP_IDX         = 4    # gripper servo index
+GRIP_HOLD_OFFSET = 10   # extra degrees to maintain grip pressure
+LOOP_SLEEP = 0.005        # main loop stability sleep
 # ----------------------------------------
 
-# --- Instância do articulado ---
 art = SingleArticulation(prim_path=ART_PATH)
 
-# --- Thread segura de envio serial ---
+# thread-safe serial sender
 _latest_cmd = None
 _latest_lock = threading.Lock()
 _cmd_event = threading.Event()
@@ -43,7 +42,7 @@ def _serial_sender_loop():
                 cmd = _latest_cmd
             _cmd_event.clear()
             if cmd and ser and ser.is_open:
-                # FIX: drena respostas OK/ERR da Pico antes de escrever
+                # drain OK/ERR responses from Pico before writing
                 if ser.in_waiting > 0:
                     ser.reset_input_buffer()
                 ser.write(cmd)
@@ -56,50 +55,48 @@ if not globals().get("_SERIAL_SENDER_THREAD_STARTED"):
     globals()["_SERIAL_SENDER_THREAD_STARTED"] = True
     globals()["_SERIAL_SENDER_THREAD"] = sender_thread
 
-# --- Abre serial ---
 try:
     ser = serial.Serial(COM_PORT, BAUD, timeout=0.1)
-    ser.reset_input_buffer()   # FIX: limpa buffer na abertura
+    ser.reset_input_buffer()   # clear buffer on open
 except Exception as e:
     ser = None
     print("Serial open failed:", e)
 
-# --- Limites e mapeamentos ---
+# joint limits and mappings
 JOINT_LIMITS = [
     (-130, -60),   # J0 Base
-    (-60, 100),    # J1 Ombro
-    (-250, -20),   # J2 Braço
-    (-30, 60),     # J3 Mão
-    (-90, 90),     # J4 Antebraço
+    (-60, 100),    # J1 Shoulder
+    (-250, -20),   # J2 Arm
+    (-30, 60),     # J3 Hand
+    (-90, 90),     # J4 Forearm
 ]
 
-# Ajuste por junta
+# per-joint sign correction
 JOINT_SIGN = [1, 1, 1, 1, -1]
-JOINT_OFFSET = [0, 20, -10, 0, -10]  # em graus
+JOINT_OFFSET = [0, 20, -10, 0, -10]  # degrees
 
-# Mapeamento entre índices da simulação e do robô real
-IDX_MAP = [6, 2, 0, 4, 1]  # ajuste conforme seu robô real
+# mapping between simulation indices and physical robot indices
+IDX_MAP = [6, 2, 0, 4, 1]  # adjust to match your robot
 
-# --- Função de conversão ---
 def sim_to_servo(joint_idx: int, sim_angle_deg: float) -> int:
     jmin, jmax = JOINT_LIMITS[joint_idx]
     angle = sim_angle_deg * JOINT_SIGN[joint_idx] + JOINT_OFFSET[joint_idx]
     servo = (angle - jmin) * (180.0 / (jmax - jmin))
     return max(0, min(180, int(servo)))
 
-# --- Debug opcional ---
+# optional debug task
 async def print_joint_angles():
     while True:
         try:
             if art.is_valid():
                 joint_positions = art.get_joint_positions()
                 if joint_positions is not None:
-                    print("===== Debug Juntas =====")
+                    print("===== Joint Debug =====")
                     for i, jp in enumerate(joint_positions):
                         print(f"Index {i}: {float(jp)*RAD_TO_DEG:.2f}°")
-                    print("------------------------")
+                    print("-----------------------")
         except Exception as e:
-            print("Erro ao ler juntas:", e)
+            print("Error reading joints:", e)
 
         await asyncio.sleep(PRINT_LOOP_SLEEP)
 
@@ -108,13 +105,13 @@ _existing_debug = [t for t in asyncio.all_tasks(loop) if t.get_coro().__name__ =
 if not _existing_debug:
     loop.create_task(print_joint_angles())
 
-# --- Loop principal ---
+# main loop state
 _last_angles  = [None] * 5
 _last_send_time = 0.0
 _RAMP_STEPS   = 20          # 20 × MIN_SEND_INTERVAL ≈ 400 ms
 _ramp_count   = 0
 _ramp_origin  = [90.0] * 5
-_ramp_target  = None        # preenchido no primeiro frame válido
+_ramp_target  = None        # set on first valid frame
 
 def _sim_to_servos(angles_deg):
     result = []
@@ -140,7 +137,7 @@ async def read_and_send_angles():
                         await asyncio.sleep(LOOP_SLEEP)
                         continue
 
-                    # Ramp de inicialização: sobe suavemente de 90° até a posição da sim
+                    # startup ramp: smoothly interpolate from 90° to sim position
                     if _ramp_count < _RAMP_STEPS:
                         if _ramp_target is None:
                             _ramp_target = _sim_to_servos(angles_deg)
@@ -150,7 +147,7 @@ async def read_and_send_angles():
                         if _ramp_count >= _RAMP_STEPS:
                             _last_angles = [angles_deg[idx] for idx in IDX_MAP]
 
-                    # Operação normal
+                    # normal operation
                     else:
                         changed = any(
                             _last_angles[i] is None or

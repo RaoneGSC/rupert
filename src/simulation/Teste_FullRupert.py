@@ -1,25 +1,26 @@
-# pc_control_protected.py
 import serial, time, sys
 from pynput import keyboard
 
-PORTA = "COM4"
+PORT = "COM4"
 BAUD = 230400
-ser = serial.Serial(PORTA, BAUD, timeout=0.2)
-# --- Estado ---
-angles = [90.0]*5
+ser = serial.Serial(PORT, BAUD, timeout=0.2)
+
+# State
+angles    = [90.0] * 5
 last_sent = angles.copy()
-# --- Parâmetros ---
-STEP_BASE = [5.0, 2.0, 5.0, 5.0, 5.0]   # passo por tick (°) - eixo 2 reduzido
-STEP_MAX  = [10.0, 4.0, 10.0, 10.0, 10.0] # passo máximo
-ACCEL     = [2.0, 0.5, 2.0, 2.0, 2.0]   # aceleração
-DELAY     = 0.05                         # 20Hz
+
+# Parameters
+STEP_BASE = [5.0, 2.0, 5.0, 5.0, 5.0]    # step per tick (°) — axis 2 reduced
+STEP_MAX  = [10.0, 4.0, 10.0, 10.0, 10.0] # max step
+ACCEL     = [2.0, 0.5, 2.0, 2.0, 2.0]    # acceleration
+DELAY     = 0.05                           # 20Hz
 DEADBAND  = 1.0
 ANGLE_MIN = [5, 5, 5, 0, 0]
-ANGLE_MAX = [175, 160, 175, 180, 180]  # eixo 2 limitado
+ANGLE_MAX = [175, 160, 175, 180, 180]      # axis 2 limited
 
-# --- Controle por tecla ---
+# Keyboard control
 key_state = {k: False for k in ['w','s','a','d','q','e','z','x','c','v']}
-servo_step = [0.0]*5
+servo_step = [0.0] * 5
 
 key_map = {
     "w": (0, +1), "s": (0, -1),
@@ -29,7 +30,7 @@ key_map = {
     "c": (4, +1), "v": (4, -1),
 }
 
-def enviar():
+def send():
     cmd = ",".join(str(int(round(a))) for a in angles) + "\n"
     ser.write(cmd.encode())
     try:
@@ -55,12 +56,11 @@ def on_release(key):
     if k in key_map:
         key_state[k] = False
 
-from pynput import keyboard
 listener = keyboard.Listener(on_press=on_press, on_release=on_release)
 listener.start()
 
-# envia posição inicial
-enviar()
+# send initial position
+send()
 time.sleep(0.1)
 
 try:
@@ -72,10 +72,10 @@ try:
                 if pressed and k in key_map:
                     idx, sign = key_map[k]
                     if idx == i:
-                        # aceleração progressiva
+                        # progressive acceleration
                         servo_step[i] = min(STEP_MAX[i], servo_step[i] + ACCEL[i])
                         step += servo_step[i] * sign
-            # desacelera suavemente
+            # smooth deceleration
             if step == 0.0:
                 servo_step[i] = max(0.0, servo_step[i] - ACCEL[i])
 
@@ -83,16 +83,16 @@ try:
                 angles[i] += step * (DELAY/0.05)
                 angles[i] = max(ANGLE_MIN[i], min(ANGLE_MAX[i], angles[i]))
 
-            if abs(angles[i]-last_sent[i]) >= DEADBAND:
+            if abs(angles[i] - last_sent[i]) >= DEADBAND:
                 changed = True
 
         if changed:
-            enviar()
+            send()
             last_sent = angles.copy()
 
         time.sleep(DELAY)
 
 except KeyboardInterrupt:
-    print("Encerrando...")
+    print("Shutting down...")
     ser.close()
     sys.exit()

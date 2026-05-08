@@ -1,29 +1,27 @@
 import serial
 import time
 
-# Ajuste para a porta serial correta do seu Pico
-PORTA_SERIAL = 'COM4'  # Altere para a porta correta
+# Adjust to your Pico's serial port
+SERIAL_PORT = 'COM4'  # change to your port
 BAUDRATE = 115200
 
-# Comando para enviar (ângulo do servo 1, ângulo do servo 2)
-comando = "90,120\n"
+# Command to send (servo 1 angle, servo 2 angle)
+command = "90,120\n"
 
 try:
-    with serial.Serial(PORTA_SERIAL, BAUDRATE, timeout=2) as ser:
-        print(f"Conectado à {PORTA_SERIAL}")
-        time.sleep(2)  # Aguarda o Pico inicializar
+    with serial.Serial(SERIAL_PORT, BAUDRATE, timeout=2) as ser:
+        print(f"Connected to {SERIAL_PORT}")
+        time.sleep(2)  # wait for Pico to initialize
 
-        # Envia comando
-        ser.write(comando.encode())
-        print(f"Comando enviado: {comando.strip()}")
+        ser.write(command.encode())
+        print(f"Command sent: {command.strip()}")
 
-        # Lê respostas
         while True:
-            resposta = ser.readline().decode().strip()
-            if resposta:
-                print(f"Resposta do Pico: {resposta}")
+            response = ser.readline().decode().strip()
+            if response:
+                print(f"Pico response: {response}")
             else:
                 break
 
 except serial.SerialException as e:
-    print(f"Erro ao abrir porta serial: {e}")
+    print(f"Error opening serial port: {e}")

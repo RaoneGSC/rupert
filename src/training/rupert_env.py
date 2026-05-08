@@ -33,11 +33,10 @@ class RupertEnv(gym.Env):
         self.max_steps = 150
         self.current_step = 0
 
-        # Carrega posições viáveis
         if os.path.exists("reachable_points.npy"):
             self.reachable_positions = np.load("reachable_points.npy")
         else:
-            raise FileNotFoundError("Arquivo 'reachable_points.npy' não encontrado.")
+            raise FileNotFoundError("File 'reachable_points.npy' not found. Run Rupert_Limits.py first.")
 
         self.reset()
 
@@ -57,13 +56,13 @@ class RupertEnv(gym.Env):
         p.resetJointState(self.arm_id, self.LINK1_JOINT_IDX, targetValue=0)
         p.resetJointState(self.arm_id, self.LINK2_JOINT_IDX, targetValue=0)
 
-        # Respeita ponto passado via options (ex: test_fixed_point)
+        # respects position passed via options (e.g. test_fixed_point)
         if options is not None and "cube_pos" in options:
             self.cube_pos = options["cube_pos"]
         else:
             self.cube_pos = self.reachable_positions[np.random.randint(len(self.reachable_positions))]
 
-        print(f"[reset] Cubo posicionado em: {self.cube_pos}")
+        print(f"[reset] Cube placed at: {self.cube_pos}")
 
         cube_collision = p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.05, 0.05, 0.05])
         cube_visual = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.05, 0.05, 0.05], rgbaColor=[1, 0, 0, 1])

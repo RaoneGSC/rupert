@@ -1,72 +1,72 @@
 # Rupert
 
-Rupert é um braço robótico de 5 graus de liberdade, desenvolvido como o primeiro robô da plataforma [AxisMov](https://github.com/AxisMov/axismov). O projeto integra simulação física, treinamento por aprendizado por reforço e controle por linguagem natural.
+Rupert is a 5-degree-of-freedom robotic arm, developed as the first robot of the [AxisMov](https://github.com/RaoneGSC/axismov) platform. The project integrates physics simulation, reinforcement learning training, and natural language control.
 
-## Funcionalidades
+## Features
 
-- **Simulação dupla**: NVIDIA Isaac Sim e PyBullet
-- **Treinamento RL**: ambiente Gymnasium com PPO (Stable Baselines 3)
-- **Controle via linguagem natural**: LangChain + Groq conectado ao hardware físico
-- **MCP Server**: controle do robô diretamente pelo Claude Desktop
-- **Hardware**: 5 servos SG92R comunicando via serial (Raspberry Pi Pico, 230400 baud)
+- **Dual simulation**: NVIDIA Isaac Sim and PyBullet
+- **RL training**: Gymnasium environment with PPO (Stable Baselines 3)
+- **Natural language control**: LangChain + Groq connected to physical hardware
+- **MCP Server**: control the robot directly from Claude Desktop
+- **Hardware**: 5x SG92R servos communicating via serial (Raspberry Pi Pico, 230400 baud)
 
-## Estrutura
+## Structure
 
 ```
 rupert/
 ├── src/
-│   ├── brain/        # Módulos de controle (Isaac Sim, PyBullet, PhysicalAI)
-│   ├── training/     # Ambiente Gymnasium e script de treinamento PPO
-│   ├── mcp/          # Servidor MCP para Claude Desktop
-│   └── simulation/   # Scripts de simulação e testes
+│   ├── brain/        # Control modules (Isaac Sim, PyBullet, PhysicalAI)
+│   ├── training/     # Gymnasium environment and PPO training script
+│   ├── mcp/          # MCP server for Claude Desktop
+│   └── simulation/   # Simulation and test scripts
 ├── assets/
-│   ├── meshes/       # Modelos 3D (.stl)
-│   └── usd/          # Cenas USD para Isaac Sim
+│   ├── meshes/       # 3D models (.stl)
+│   └── usd/          # USD scenes for Isaac Sim
 ├── cfg/
-│   └── urdf/         # Descrições URDF do robô
-└── scripts/          # Utilitários e testes de comunicação serial
+│   └── urdf/         # Robot URDF descriptions
+└── scripts/          # Utilities and serial communication tests
 ```
 
 ## Setup
 
 ```bash
-# 1. Clone o repositório
-git clone https://github.com/AxisMov/rupert.git
+# 1. Clone the repository
+git clone https://github.com/RaoneGSC/rupert.git
 cd rupert
 
-# 2. Instale as dependências
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Configure as variáveis de ambiente
+# 3. Configure environment variables
 cp .env.example .env
-# Edite .env com suas chaves de API
+# Edit .env with your API keys
 ```
 
 ## Hardware
 
-| Componente | Detalhe |
+| Component | Details |
 |---|---|
-| Microcontrolador | Raspberry Pi Pico |
+| Microcontroller | Raspberry Pi Pico |
 | Servos | 5x SG92R |
-| Comunicação | Serial USB, 230400 baud, COM4 |
-| Porta | COM4 (configurável nos scripts) |
+| Communication | USB Serial, 230400 baud |
+| Port | COM4 (configurable in scripts) |
 
-## Uso
+## Usage
 
-### Simulação com Isaac Sim
-Abra o Isaac Sim, carregue `assets/usd/IsaacRupert.usd` e execute `src/brain/IsaacRupertBrain.py` no terminal de script.
+### Isaac Sim
+Open Isaac Sim, load `assets/usd/IsaacRupert.usd` and run `src/brain/IsaacRupertBrain.py` in the script terminal.
 
-### Simulação com PyBullet
+### PyBullet simulation
 ```bash
 python src/brain/RupertBrainV2.py
 ```
 
-### Treinamento RL
+### RL training
 ```bash
 python src/training/train.py
 ```
 
-### Controle por linguagem natural (hardware físico)
+### Natural language control (physical hardware)
 ```bash
 python src/brain/RupertPhysicalAI.py
 ```
@@ -76,6 +76,6 @@ python src/brain/RupertPhysicalAI.py
 python src/mcp/RupertMCP.py
 ```
 
-## Licença
+## License
 
 MIT

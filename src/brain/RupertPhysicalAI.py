@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# RupertPhysicalAI.py — Controle por linguagem natural com LangChain + Claude
+# RupertPhysicalAI.py — Natural language control with LangChain + Groq
 import os, serial, time, sys, threading
 from typing import List, Dict, Any
 from langchain_groq import ChatGroq
@@ -9,22 +9,22 @@ from langchain_core.messages import HumanMessage
 
 # ─── API Key ──────────────────────────────────────────────────────────────────
 if not os.environ.get("GROQ_API_KEY"):
-    raise EnvironmentError("GROQ_API_KEY não definida. Crie um arquivo .env com a variável.")
+    raise EnvironmentError("GROQ_API_KEY is not set. Create a .env file with the variable.")
 
-# ─── Controle global do spinner ───────────────────────────────────────────────
+# ─── Spinner control ──────────────────────────────────────────────────────────
 _stop_spin = threading.Event()
-_stop_spin.set()  # começa parado
+_stop_spin.set()  # starts stopped
 
 # ─── Serial ───────────────────────────────────────────────────────────────────
-PORTA = "COM4"
+PORT = "COM4"
 BAUD  = 230400
-ser   = serial.Serial(PORTA, BAUD, timeout=0.2)
+ser   = serial.Serial(PORT, BAUD, timeout=0.2)
 
-# ─── Estado ───────────────────────────────────────────────────────────────────
+# ─── State ────────────────────────────────────────────────────────────────────
 angles    = [90.0] * 5
 last_sent = angles.copy()
 
-# ─── Parâmetros (idênticos ao original) ───────────────────────────────────────
+# ─── Parameters ───────────────────────────────────────────────────────────────
 STEP_BASE = [5.0,  2.0,  5.0,  5.0,  5.0]
 STEP_MAX  = [10.0, 4.0, 10.0, 10.0, 10.0]
 ACCEL     = [2.0,  0.5,  2.0,  2.0,  2.0]
@@ -33,10 +33,10 @@ DEADBAND  = 1.0
 ANGLE_MIN = [5,   5,   5,   0,   0]
 ANGLE_MAX = [175, 160, 175, 180, 180]
 
-SERVOS = ["base", "ombro", "cotovelo", "pulso", "garra"]
+SERVOS = ["base", "shoulder", "elbow", "wrist", "gripper"]
 
-# ─── Comunicação serial ────────────────────────────────────────────────────────
-def enviar():
+# ─── Serial communication ──────────────────────────────────────────────────────
+def send():
     cmd = ",".join(str(int(round(a))) for a in angles) + "\n"
     ser.write(cmd.encode())
     try:
@@ -46,215 +46,214 @@ def enviar():
     except Exception:
         pass
 
-def mover_para(idx: int, alvo: float):
-    """Interpolação suave até o ângulo alvo usando STEP_BASE."""
-    alvo = max(ANGLE_MIN[idx], min(ANGLE_MAX[idx], alvo))
+def move_to(idx: int, target: float):
+    """Smooth interpolation to target angle using STEP_BASE."""
+    target = max(ANGLE_MIN[idx], min(ANGLE_MAX[idx], target))
     step = STEP_BASE[idx]
-    while abs(angles[idx] - alvo) > DEADBAND:
-        diff = alvo - angles[idx]
+    while abs(angles[idx] - target) > DEADBAND:
+        diff = target - angles[idx]
         move = min(step, abs(diff)) * (1 if diff > 0 else -1)
         angles[idx] = max(ANGLE_MIN[idx], min(ANGLE_MAX[idx], angles[idx] + move))
-        enviar()
+        send()
         time.sleep(DELAY)
 
-# ─── Ferramentas LangChain ─────────────────────────────────────────────────────
+# ─── LangChain tools ──────────────────────────────────────────────────────────
 @tool
-def mover_servo(servo: str, angulo: str) -> str:
-    """Move um servo do robô para o ângulo especificado.
+def move_servo(servo: str, angle: str) -> str:
+    """Move a robot servo to the specified angle.
 
-    Servos disponíveis e seus limites:
-      - base      : 5–175°  | DIREITA=ângulo menor (ex:45°)  ESQUERDA=ângulo maior (ex:135°)  frente=90°
-      - ombro     : 5–160°  | CIMA=ângulo maior (ex:130°)    BAIXO=ângulo menor (ex:45°)       horizontal=90°
-      - cotovelo  : 5–175°  | ESTICA=ângulo maior (ex:135°)  DOBRA=ângulo menor (ex:45°)       reto=90°
-      - pulso     : 0–180°  | ABRE garra=ângulo menor (0°)   FECHA garra=ângulo maior (180°)
-      - garra     : 0–180°  | rotação do pulso/garra          neutro=90°
+    Available servos and limits:
+      - base     : 5–175°  | RIGHT=smaller angle (e.g. 45°)   LEFT=larger angle (e.g. 135°)   forward=90°
+      - shoulder : 5–160°  | UP=larger angle (e.g. 130°)      DOWN=smaller angle (e.g. 45°)    horizontal=90°
+      - elbow    : 5–175°  | EXTEND=larger angle (e.g. 135°)  FOLD=smaller angle (e.g. 45°)    straight=90°
+      - wrist    : 0–180°  | OPEN gripper=smaller angle (0°)  CLOSE gripper=larger angle (180°)
+      - gripper  : 0–180°  | wrist/gripper rotation            neutral=90°
 
     Args:
-        servo: nome do servo (base, ombro, cotovelo, pulso ou garra)
-        angulo: ângulo destino em graus
+        servo: servo name (base, shoulder, elbow, wrist or gripper)
+        angle: target angle in degrees
     """
     servo = servo.lower().strip()
     if servo not in SERVOS:
-        return f"Servo inválido '{servo}'. Escolha: {', '.join(SERVOS)}"
-    idx  = SERVOS.index(servo)
-    alvo = max(ANGLE_MIN[idx], min(ANGLE_MAX[idx], float(angulo)))
-    print(f"  → {servo} → {alvo:.0f}°")
-    mover_para(idx, alvo)
-    return f"{servo} posicionado em {angles[idx]:.0f}°"
+        return f"Invalid servo '{servo}'. Choose: {', '.join(SERVOS)}"
+    idx    = SERVOS.index(servo)
+    target = max(ANGLE_MIN[idx], min(ANGLE_MAX[idx], float(angle)))
+    print(f"  → {servo} → {target:.0f}°")
+    move_to(idx, target)
+    return f"{servo} positioned at {angles[idx]:.0f}°"
 
 @tool
-def posicao_atual() -> str:
-    """Retorna a posição atual (em graus) de todos os servos do robô."""
-    partes = [f"{SERVOS[i]}: {angles[i]:.0f}°" for i in range(5)]
-    return "Posição atual → " + " | ".join(partes)
+def current_position() -> str:
+    """Returns the current position (in degrees) of all robot servos."""
+    parts = [f"{SERVOS[i]}: {angles[i]:.0f}°" for i in range(5)]
+    return "Current position → " + " | ".join(parts)
 
 @tool
-def centralizar() -> str:
-    """Move todos os servos para 90° (posição central/neutra do robô)."""
-    print("  → Centralizando todos os servos...")
+def center_all() -> str:
+    """Moves all servos to 90° (robot center/neutral position)."""
+    print("  → Centering all servos...")
     for i in range(5):
-        mover_para(i, 90.0)
-    return "Robô centralizado em 90° em todos os eixos."
+        move_to(i, 90.0)
+    return "Robot centered at 90° on all axes."
 
 @tool
-def mover_sequencia(movimentos: List[Dict[str, Any]]) -> str:
-    """Executa uma sequência de movimentos em múltiplos servos.
+def move_sequence(movements: List[Dict[str, Any]]) -> str:
+    """Executes a sequence of movements on multiple servos.
 
-    Use esta ferramenta para comandos compostos que envolvem mais de um servo.
+    Use this tool for compound commands involving more than one servo.
 
     Args:
-        movimentos: lista de objetos {"servo": str, "angulo": float}
-                    Exemplo: [{"servo": "base", "angulo": 120}, {"servo": "garra", "angulo": 0}]
+        movements: list of objects {"servo": str, "angle": float}
+                   Example: [{"servo": "base", "angle": 120}, {"servo": "gripper", "angle": 0}]
     """
-    resultados = []
-    for m in movimentos:
+    results = []
+    for m in movements:
         s = str(m.get("servo", "")).lower().strip()
-        a = m.get("angulo")
+        a = m.get("angle")
         if s in SERVOS and a is not None:
-            idx  = SERVOS.index(s)
-            alvo = max(ANGLE_MIN[idx], min(ANGLE_MAX[idx], float(a)))
-            print(f"  → {s} → {alvo:.0f}°")
-            mover_para(idx, alvo)
-            resultados.append(f"{s}={angles[idx]:.0f}°")
+            idx    = SERVOS.index(s)
+            target = max(ANGLE_MIN[idx], min(ANGLE_MAX[idx], float(a)))
+            print(f"  → {s} → {target:.0f}°")
+            move_to(idx, target)
+            results.append(f"{s}={angles[idx]:.0f}°")
         else:
-            resultados.append(f"ignorado: {m}")
-    return "Sequência concluída: " + ", ".join(resultados)
+            results.append(f"skipped: {m}")
+    return "Sequence done: " + ", ".join(results)
 
 @tool
-def pedir_esclarecimento(pergunta: str) -> str:
-    """Use esta ferramenta quando o comando for ambíguo ou não souber como executá-lo.
-    Exibe a pergunta ao usuário e aguarda uma resposta.
+def ask_clarification(question: str) -> str:
+    """Use this tool when a command is ambiguous or you don't know how to execute it.
+    Displays the question to the user and waits for a response.
 
     Args:
-        pergunta: a dúvida ou pedido de esclarecimento para o usuário
+        question: the clarification question for the user
     """
-    _stop_spin.set()  # para o spinner antes de pedir input
-    print(f"\n  Rupert: {pergunta}")
-    resposta = input("  Você: ").strip()
-    return f"Usuário respondeu: {resposta}"
+    _stop_spin.set()
+    print(f"\n  Rupert: {question}")
+    answer = input("  You: ").strip()
+    return f"User replied: {answer}"
 
-# ─── Agente LangChain ──────────────────────────────────────────────────────────
-ferramentas = [mover_servo, posicao_atual, centralizar, mover_sequencia, pedir_esclarecimento]
+# ─── LangChain agent ──────────────────────────────────────────────────────────
+tools = [move_servo, current_position, center_all, move_sequence, ask_clarification]
 
-SYSTEM_PROMPT = """Você é o controlador de um braço robótico físico chamado Rupert.
-Você recebe comandos em linguagem natural e os converte em movimentos precisos dos servos.
+SYSTEM_PROMPT = """You are the controller of a physical robotic arm called Rupert.
+You receive commands in natural language and convert them into precise servo movements.
 
-══ ANATOMIA E DIREÇÕES ══
+══ ANATOMY AND DIRECTIONS ══
 
-• base (servo 0) — rotação horizontal do torso (5–175°)
-    DIREITA  → ângulo MENOR que 90° (ex: 45°)
-    ESQUERDA → ângulo MAIOR que 90° (ex: 135°)
-    frente = 90°
+• base (servo 0) — horizontal torso rotation (5–175°)
+    RIGHT  → SMALLER angle than 90° (e.g. 45°)
+    LEFT   → LARGER angle than 90° (e.g. 135°)
+    forward = 90°
 
-• ombro (servo 1) — sobe e desce o braço (5–160°)
-    CIMA / LEVANTA / SOBE  → ângulo MAIOR (ex: 130°)
-    BAIXO / ABAIXA / DESCE → ângulo MENOR (ex: 45°)
+• shoulder (servo 1) — raises and lowers the arm (5–160°)
+    UP / RAISE / LIFT   → LARGER angle (e.g. 130°)
+    DOWN / LOWER / DROP → SMALLER angle (e.g. 45°)
     horizontal = 90°
 
-• cotovelo (servo 2) — estica e dobra o antebraço (5–175°)
-    ESTICA / ESTENDE / FRENTE / AVANÇA → ângulo MAIOR (ex: 135°)
-    DOBRA / ENCOLHE / RECUA / ATRÁS    → ângulo MENOR (ex: 45°)
-    reto = 90°
+• elbow (servo 2) — extends and folds the forearm (5–175°)
+    EXTEND / STRETCH / FORWARD / ADVANCE → LARGER angle (e.g. 135°)
+    FOLD / RETRACT / BACK                → SMALLER angle (e.g. 45°)
+    straight = 90°
 
-• pulso (servo 3) — abre e fecha a garra (0–180°)
-    ABRE  → ângulo MENOR (0°)
-    FECHA → ângulo MAIOR (180°)
+• wrist (servo 3) — opens and closes the gripper (0–180°)
+    OPEN  → SMALLER angle (0°)
+    CLOSE → LARGER angle (180°)
 
-• garra (servo 4) — rotação do pulso (0–180°; neutro=90°)
+• gripper (servo 4) — wrist rotation (0–180°; neutral=90°)
 
-══ MAPEAMENTO DE PALAVRAS-CHAVE ══
+══ KEYWORD MAPPING ══
 
-"cima" / "levanta" / "sobe"              → ombro AUMENTA ângulo
-"baixo" / "abaixa" / "desce"            → ombro DIMINUI ângulo
-"estende" / "estica" / "frente" / "avança" → cotovelo AUMENTA ângulo
-"dobra" / "encolhe" / "recua" / "atrás" → cotovelo DIMINUI ângulo
-"direita"                                → base DIMINUI ângulo
-"esquerda"                               → base AUMENTA ângulo
+"up" / "raise" / "lift"                      → shoulder INCREASE angle
+"down" / "lower" / "drop"                    → shoulder DECREASE angle
+"extend" / "stretch" / "forward" / "advance" → elbow INCREASE angle
+"fold" / "retract" / "back"                  → elbow DECREASE angle
+"right"                                       → base DECREASE angle
+"left"                                        → base INCREASE angle
 
-IMPORTANTE: "frente", "avançar" referem-se ao COTOVELO, nunca à base.
-IMPORTANTE: "cima" e "baixo" referem-se ao OMBRO, nunca à base.
+IMPORTANT: "forward", "advance" refer to the ELBOW, never to the base.
+IMPORTANT: "up" and "down" refer to the SHOULDER, never to the base.
 
-══ SEQUÊNCIA PARA PEGAR OBJETO ══
+══ SEQUENCE TO GRAB AN OBJECT ══
 
-"pegue" / "agarre" / "pegar objeto à frente":
-  1. pulso → 0°     (abre a garra)
-  2. ombro → 50°    (desce o braço)
-  3. cotovelo → 135° (estica para alcançar)
-  4. pulso → 180°   (fecha a garra)
+"grab" / "pick" / "grasp object in front":
+  1. wrist → 0°     (open gripper)
+  2. shoulder → 50° (lower arm)
+  3. elbow → 135°   (extend to reach)
+  4. wrist → 180°   (close gripper)
 
-"largue" / "solte" / "deposite":
-  1. pulso → 0°     (abre a garra)
+"release" / "drop" / "place":
+  1. wrist → 0°     (open gripper)
 
-══ REGRAS ══
+══ RULES ══
 
-1. SEMPRE use as ferramentas para executar — nunca apenas descreva.
-2. Para múltiplos servos, prefira mover_sequencia.
-3. NUNCA mova a base ao receber "para frente", "para cima" ou "para baixo".
-4. Confirme brevemente em português o que foi executado.
-5. Se algo estiver fora dos limites, execute o mais próximo e avise.
-6. Se o comando for vago, criativo ou não tiver mapeamento claro para servos
-   (ex: "dar tchau", "dançar", "acenar"), use pedir_esclarecimento ANTES de
-   tentar executar qualquer movimento. Nunca adivinhe nesses casos."""
+1. ALWAYS use tools to execute — never just describe.
+2. For multiple servos, prefer move_sequence.
+3. NEVER move the base when receiving "forward", "up" or "down".
+4. Briefly confirm in English what was executed.
+5. If something is out of limits, execute the closest valid value and inform the user.
+6. If the command is vague, creative, or has no clear servo mapping
+   (e.g. "wave goodbye", "dance", "shake"), use ask_clarification BEFORE
+   attempting any movement. Never guess in these cases."""
 
 llm   = ChatGroq(model="meta-llama/llama-4-scout-17b-16e-instruct", temperature=0)
-agent = create_react_agent(llm, ferramentas, prompt=SYSTEM_PROMPT)
+agent = create_react_agent(llm, tools, prompt=SYSTEM_PROMPT)
 
-# ─── Loop principal ────────────────────────────────────────────────────────────
-historico: list = []
+# ─── Main loop ────────────────────────────────────────────────────────────────
+history: list = []
 
 print("═" * 55)
-print("  Rupert — Controle por Linguagem Natural")
-print("  Digite um comando ou 'sair' para encerrar.")
+print("  Rupert — Natural Language Control")
+print("  Type a command or 'quit' to exit.")
 print("═" * 55)
 
-# posição inicial
-enviar()
+send()
 time.sleep(0.1)
 
 try:
     while True:
         try:
-            cmd = input("\nVocê: ").strip()
+            cmd = input("\nYou: ").strip()
         except EOFError:
             break
 
         if not cmd:
             continue
-        if cmd.lower() in ("sair", "exit", "quit"):
+        if cmd.lower() in ("quit", "exit"):
             break
 
-        historico.append(HumanMessage(content=cmd))
+        history.append(HumanMessage(content=cmd))
         try:
-            _stop_spin.clear()  # ativa o spinner
+            _stop_spin.clear()
             def spinner():
                 chars = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
                 i = 0
                 while not _stop_spin.is_set():
-                    print(f"\r  Pensando {chars[i % len(chars)]}", end="", flush=True)
+                    print(f"\r  Thinking {chars[i % len(chars)]}", end="", flush=True)
                     i += 1
                     time.sleep(0.1)
                 print("\r" + " " * 20 + "\r", end="", flush=True)
             t = threading.Thread(target=spinner, daemon=True)
             t.start()
-            resultado = agent.invoke(
-                {"messages": historico},
+            result = agent.invoke(
+                {"messages": history},
                 config={"recursion_limit": 8}
             )
             _stop_spin.set()
             t.join()
-            output = resultado["messages"][-1].content
+            output = result["messages"][-1].content
             print(f"\nRupert: {output}")
-            historico = resultado["messages"]
-            if len(historico) > 20:
-                historico = historico[-20:]
+            history = result["messages"]
+            if len(history) > 20:
+                history = history[-20:]
         except Exception as e:
             _stop_spin.set()
-            print(f"\n[Erro] {e}")
-            historico.pop()  # remove a mensagem que falhou
+            print(f"\n[Error] {e}")
+            history.pop()
 
 except KeyboardInterrupt:
     pass
 finally:
-    print("\nEncerrando conexão serial...")
+    print("\nClosing serial connection...")
     ser.close()
     sys.exit(0)
