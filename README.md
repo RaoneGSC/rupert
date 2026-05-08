@@ -1,7 +1,7 @@
 # Rupert
 
 <p align="center">
-  <img src="docs/images/rupert_physical.jpg" width="420" alt="Rupert robotic arm"/>
+  <img src="docs/images/rupert_physical.png" width="420" alt="Rupert robotic arm"/>
 </p>
 
 > **Work in progress.** Rupert is an actively developed platform — control models, simulation, and hardware are continuously being improved. Expect rough edges.
