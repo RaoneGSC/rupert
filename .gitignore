@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Ambiente
+.env
+venv/
+.venv/
+env/
+
+# ML / Treinamento
+checkpoints/
+*_tensorboard/
+*_tensorboard_*/
+*.zip
+*.npy
+
+# Timings gerados automaticamente
+timings_*.json
+
+# Arquivos grandes e de mídia
+*.mp4
+*.avi
+*.exe
+*.pdf
+*.bmp
+*.png
+*.jpg
+
+# IDE
+.vscode/
+.idea/
+*.swp

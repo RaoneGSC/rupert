@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<robot name="modificado">
+
+  <!-- Caixa Branca -->
+  <link name="caixa_branca">
+    <visual>
+      <geometry>
+        <box size="0.5 0.1 0.1"/> <!-- Dimensão reduzida da caixa -->
+      </geometry>
+      <material name="white">
+        <color rgba="1.0 1.0 1.0 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- Haste -->
+  <link name="haste">
+    <visual>
+      <geometry>
+        <cylinder radius="0.05" length="1.0"/>
+      </geometry>
+      <material name="gray"/>
+    </visual>
+  </link>
+
+  <!-- Junta entre a caixa e a haste -->
+  <joint name="junta_caixa_haste" type="fixed">
+    <parent link="caixa_branca"/>
+    <child link="haste"/>
+    <origin xyz="0 0 -0.5" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Servo 1 para a rotação da caixa -->
+  <joint name="servo1" type="revolute">
+    <parent link="caixa_branca"/>
+    <child link="caixa_branca"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14159" upper="3.14159" effort="10" velocity="1.0"/>
+  </joint>
+
+  <!-- Servo 2 para rotação da haste -->
+  <joint name="servo2" type="revolute">
+    <parent link="haste"/>
+    <child link="haste"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14159" upper="3.14159" effort="10" velocity="1.0"/>
+  </joint>
+
+</robot>

@@ -1,0 +1,116 @@
+<robot name="RupertV2">
+  <!-- ===================== RupertBase - RupertShoulder ==============================================-->
+<!-- RupertBase -->
+<link name="RupertBase">
+  <!-- Aparência -->
+  <visual>
+    <origin xyz="0.1 0 -0.1" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="RupertBaseV8.stl" scale="0.01 0.01 0.01"/>
+    </geometry>
+    <material name="Preto Claro">
+        <color rgba="0.2 0.2 0.2 1"/>
+    </material>  
+  </visual>
+  <collision>
+    <origin xyz="0 0 0.15" rpy="0 0 0"/>
+    <geometry>
+      <box size="0.7 0.6 0.4"/>
+    </geometry>
+  </collision>
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <mass value="1" />
+    <inertia ixx="0.000034533333" ixy="0" ixz="0" iyx="0" iyy="0.000034533333" iyz="0" izx="0" izy="0" izz="0.0000648" />
+  </inertial>
+</link>
+
+<!-- RupertShoulder -->
+<link name="RupertShoulder">
+  <!-- Aparência -->
+  <visual>
+    <origin xyz="0 0 -0.05" rpy="0 0 4.71"/>
+    <geometry>
+      <mesh filename="RupertShoulderV6.stl" scale="0.01 0.01 0.01"/>
+    </geometry>
+    <material name="Branco">
+        <color rgba="0.9 0.9 0.9 0.99"/>
+    </material>  
+  </visual>
+  <collision>
+    <origin xyz="-0,1 0 0.1" rpy="0 0 0"/>
+    <geometry>
+      <box size="0.4 0.4 0.5"/>
+    </geometry>
+  </collision>
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <mass value="0.1" />
+    <inertia ixx="0.000034533333" ixy="0" ixz="0" iyx="0" iyy="0.000034533333" iyz="0" izx="0" izy="0" izz="0.0000648" />
+  </inertial>
+</link>
+
+<!-- joint1 (rotação no eixo Z) -->
+<joint name="joint1" type="revolute">
+  <!-- link pai -->
+  <parent link="RupertBase"/>
+  <!-- link filho -->
+  <child link="RupertShoulder"/>
+  
+  <!-- Origem da junta (posicionando para que o RupertShoulder gire em torno da RupertBase) -->
+  <origin xyz="0.05 0 0.5" rpy="0 0 0"/>
+  
+  <!-- Eixo de rotação: rotação no eixo Z para giro no plano XY -->
+  <axis xyz="0 0 1"/>
+  
+  <!-- Limitações de rotação -->
+  <limit effort="100" lower="-0.5" upper="0.5" velocity="1.0"/>
+</joint>
+
+  <!-- ================================================================================== -->
+
+  <!-- ===================== RupertShoulder - RupertLowerArm ==============================================-->
+  <!-- RupertLowerArm -->
+  <link name="RupertLowerArm">
+    <visual>
+      <origin xyz="0.0 0.19 0" rpy="1.57 3.14 0"/>
+      <geometry>
+        <mesh filename="RupertLowerArmV2.stl" scale="0.01 0.01 0.01"/>
+      </geometry>
+      <material name="Preto Claro">
+        <color rgba="0.2 0.2 0.2 1"/>
+      </material>   
+    </visual>
+
+    <collision>
+      <origin xyz="0 0.19 0.6" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.2 0.05 1.1"/>
+      </geometry>
+    </collision>
+
+    <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <mass value="0.1" />
+        <inertia ixx="0.000034533333" 
+            ixy="0"  ixz="0"
+            iyx="0"  iyy="0.000034533333" 
+            iyz="0"
+            izx="0"  izy="0"  izz="0.0000648" />
+    </inertial>
+  </link>
+
+  <!-- joint2 （Revolução no plano xy） -->
+  <joint name="joint2" type="revolute">
+    <parent link="RupertShoulder"/>
+    <child link="RupertLowerArm"/>
+    <origin xyz="0 0 0.2" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="100" velocity="1" lower="-1.57" upper="1.57"/> <!-- 0 a 180 graus -->
+  </joint>
+  
+  
+
+ 
+
+</robot>

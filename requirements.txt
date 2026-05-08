@@ -1,0 +1,25 @@
+# Simulação
+pybullet
+
+# RL / Treinamento
+gymnasium
+stable-baselines3
+numpy
+
+# Comunicação serial
+pyserial
+
+# MCP server
+mcp[cli]
+fastmcp
+
+# AI / LLM
+langchain
+langchain-groq
+langgraph
+langchain-core
+openai
+
+# Isaac Sim (instalar separadamente via NVIDIA pip index)
+# isaacsim
+# isaacsim-core

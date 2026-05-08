@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<robot name="dois_servos">
+
+  <!-- Servo Motor 1 (fixado na mesa) -->
+  <link name="base_servo1">
+    <visual>
+      <geometry>
+        <box size="0.032 0.012 0.026"/> <!-- Tamanho do servo motor 1 -->
+      </geometry>
+      <material name="gray"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.032 0.012 0.026"/> <!-- Colisão do servo motor 1 -->
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.1"/> <!-- Massa padrão do servo motor 1 -->
+      <inertia ix="0.0001" iy="0.0001" iz="0.0001"/> <!-- Inércia padrão -->
+    </inertial>
+  </link>
+
+  <!-- Servo Motor 2 (girando com o primeiro) -->
+  <link name="base_servo2">
+    <visual>
+      <geometry>
+        <box size="0.032 0.012 0.026"/> <!-- Tamanho do servo motor 2 -->
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.032 0.012 0.026"/> <!-- Colisão do servo motor 2 -->
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.1"/> <!-- Massa padrão do servo motor 2 -->
+      <inertia ix="0.0001" iy="0.0001" iz="0.0001"/> <!-- Inércia padrão -->
+    </inertial>
+  </link>
+
+  <!-- Junta entre os dois servos (revoluta) -->
+  <joint name="servo_joint" type="revolute">
+    <parent link="base_servo1"/>
+    <child link="base_servo2"/>
+    <origin xyz="0 0 0.026"/> <!-- Posição do eixo de rotação -->
+    <axis xyz="0 1 0"/> <!-- Eixo de rotação no eixo Y -->
+    <limit lower="0" upper="3.14" effort="1" velocity="1"/> <!-- Limites da junta -->
+  </joint>
+
+  <!-- Chave Allen (visual, cilindro) -->
+  <link name="chave_allen">
+    <visual>
+      <geometry>
+        <cylinder radius="0.002" length="0.01"/> <!-- Representação visual da chave Allen -->
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.002" length="0.01"/> <!-- Colisão da chave Allen -->
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.01"/> <!-- Massa pequena da chave Allen -->
+      <inertia ix="0.00001" iy="0.00001" iz="0.00001"/> <!-- Inércia da chave Allen -->
+    </inertial>
+  </link>
+
+  <!-- Junta entre o servo motor 2 e a chave Allen -->
+  <joint name="chave_joint" type="revolute">
+    <parent link="base_servo2"/>
+    <child link="chave_allen"/>
+    <origin xyz="0 0 0.013"/> <!-- Posição da chave Allen no eixo do servo motor 2 -->
+    <axis xyz="0 1 0"/> <!-- Eixo de rotação da chave Allen -->
+    <limit lower="0" upper="3.14" effort="1" velocity="1"/> <!-- Limites da junta -->
+  </joint>
+
+</robot>
