@@ -27,7 +27,7 @@ PC (Brain)  ──── USB Serial (230400 baud) ────  Pico 2 (Firmware
 
 ## Firmware — Peripheral Nervous System
 
-`firmware/pico_servo_protected.py` is the MicroPython script that runs on the **Raspberry Pi Pico 2**. Flash it using [Thonny](https://thonny.org/) or `mpremote`.
+`firmware/peripheral_system.py` is the MicroPython script that runs on the **Raspberry Pi Pico 2**. Flash it using [Thonny](https://thonny.org/) or `mpremote`.
 
 It listens on USB serial for commands in the format:
 
@@ -43,13 +43,13 @@ OK,angle0,angle1,angle2,angle3,angle4
 
 Or `ERR,FORMAT` / `ERR,<message>` on failure. On startup it prints `READY`.
 
-| Pin | Servo | Type |
-|---|---|---|
-| 15 | Base | SG92R |
-| 14 | Shoulder | MG90S |
-| 13 | Elbow | SG92R |
-| 12 | Wrist | SG90 |
-| 19 | Gripper | SG90 |
+| Pin | Joint | Servo | Notes |
+|---|---|---|---|
+| 15 | Base | SG92R | horizontal rotation |
+| 14 | Shoulder | MG90S | metal gear — higher load area |
+| 13 | Elbow | SG92R | |
+| 12 | Wrist | SG90 | opens/closes gripper |
+| 19 | Gripper | SG90 | wrist rotation |
 
 ---
 
@@ -113,8 +113,11 @@ Rupert is fully 3D-printable. All parts use **M3 screws**. STL and USD files are
 |---|---|
 | Microcontroller | Raspberry Pi Pico 2 |
 | Motor driver | [Kitronik Simply Robotics Motor Driver Board for Raspberry Pi Pico](https://kitronik.co.uk/products/5331-simply-robotics-motor-driver-board-for-raspberry-pi-pico) |
-| Servos (base, wrist, gripper) | SG92R / SG90 — 9g micro servo |
-| Servos (shoulder, elbow) | MG996R — metal gear, higher torque |
+| Base servo (pin 15) | SG92R |
+| Shoulder servo (pin 14) | MG90S — metal gear, handles higher torque |
+| Elbow servo (pin 13) | SG92R |
+| Wrist servo (pin 12) | SG90 |
+| Gripper servo (pin 19) | SG90 |
 | Communication | USB Serial, 230400 baud |
 | Fasteners | M3 screws |
 
@@ -159,7 +162,7 @@ pip install -r requirements.txt
 cp .env.example .env   # add your API keys if using RupertPhysicalAI or Autogen
 ```
 
-Flash the firmware to the Pico separately via Thonny or `mpremote copy firmware/pico_servo_protected.py :main.py`.
+Flash the firmware to the Pico separately via Thonny or `mpremote copy firmware/peripheral_system.py :main.py`.
 
 ---
 
