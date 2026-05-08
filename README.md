@@ -116,7 +116,7 @@ Rupert is fully 3D-printable. All parts use **M3 screws**. STL and USD files are
 | Component | Details |
 |---|---|
 | Microcontroller | Raspberry Pi Pico 2 |
-| Motor driver | [Kitronik Simply Robotics Motor Driver Board for Raspberry Pi Pico](https://kitronik.co.uk/products/5331-simply-robotics-motor-driver-board-for-raspberry-pi-pico) |
+| Motor driver | [Kitronik Simply Robotics Motor Driver Board for Raspberry Pi Pico](https://kitronik.co.uk/products/5348-kitronik-simply-robotics-for-raspberry-pi-pico) |
 | Base servo (pin 15) | SG92R — carbon fiber gears |
 | Shoulder servo (pin 14) | MG90S — metal gear, highest load area |
 | Elbow servo (pin 13) | SG92R — carbon fiber gears |
