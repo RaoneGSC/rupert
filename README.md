@@ -12,18 +12,61 @@ The main interest of the project is the **sim-to-real pipeline**: training or co
 
 ---
 
+## Architecture
+
+Rupert is split into two layers:
+
+- **Brain** (`src/brain/`) — runs on the PC, handles simulation, AI, and high-level control
+- **Firmware** (`firmware/`) — runs on the Raspberry Pi Pico 2, drives the servos directly
+
+```
+PC (Brain)  ──── USB Serial (230400 baud) ────  Pico 2 (Firmware)  ──── PWM ────  Servos
+```
+
+---
+
+## Firmware — Peripheral Nervous System
+
+`firmware/pico_servo_protected.py` is the MicroPython script that runs on the **Raspberry Pi Pico 2**. Flash it using [Thonny](https://thonny.org/) or `mpremote`.
+
+It listens on USB serial for commands in the format:
+
+```
+angle0,angle1,angle2,angle3,angle4\n
+```
+
+And responds with:
+
+```
+OK,angle0,angle1,angle2,angle3,angle4
+```
+
+Or `ERR,FORMAT` / `ERR,<message>` on failure. On startup it prints `READY`.
+
+| Pin | Servo | Type |
+|---|---|---|
+| 15 | Base | SG92R |
+| 14 | Shoulder | MG90S |
+| 13 | Elbow | SG92R |
+| 12 | Wrist | SG90 |
+| 19 | Gripper | SG90 |
+
+---
+
 ## Brain Modules
 
 Rupert has multiple control interfaces, each in `src/brain/`:
 
 | File | Description |
 |---|---|
-| `IsaacRupertBrain.py` | **Main sim-to-real bridge** — reads joint positions from Isaac Sim and sends them to the physical robot via serial |
+| `IsaacRupertBrain.py` | **Main sim-to-real bridge** — reads joint positions from Isaac Sim and streams them to the Pico via serial |
 | `RupertBrainV3.py` | Keyboard-based direct control of the physical robot |
-| `RupertBrainPyBulletV2.py` | PyBullet simulation + serial bridge (2-DOF) |
-| `RupertBrainPyBulletV1.py` | First PyBullet prototype |
+| `RupertBrainPyBulletV2.py` | PyBullet simulation + serial bridge ⚠️ partial assembly (2-DOF only) |
+| `RupertBrainPyBulletV1.py` | First PyBullet prototype ⚠️ partial assembly |
 | `RupertPhysicalAI.py` | Natural language control via LangChain + Groq |
 | `src/mcp/RupertMCP.py` | MCP server — control Rupert directly from Claude Desktop |
+
+> ⚠️ The PyBullet scripts and RL training environment (`src/training/`) model a **partial, 2-DOF version** of Rupert, not the full 5-DOF assembly. Full-assembly RL training is on the roadmap.
 
 ---
 
@@ -41,7 +84,11 @@ Launch Isaac Sim, go to **File → Open**, navigate to the `assets/usd/` folder 
   <img src="docs/images/isaac_open_usd.png" width="700" alt="Opening IsaacRupert.usd in Isaac Sim"/>
 </p>
 
-### Step 2 — Load the robot and run the brain
+### Step 2 — Flash the firmware
+
+Flash `firmware/pico_servo_protected.py` to the Raspberry Pi Pico 2 using Thonny or `mpremote`. Connect the Pico via USB and confirm the COM port in `IsaacRupertBrain.py`.
+
+### Step 3 — Run the brain script
 
 Once the scene loads you should see Rupert in the viewport with all joints visible in the Physics Inspector.
 
@@ -52,11 +99,9 @@ Once the scene loads you should see Rupert in the viewport with all joints visib
 Open the **Script Editor** (bottom panel), load `src/brain/IsaacRupertBrain.py` and hit **Run (Ctrl+Enter)**.
 
 The script will:
-1. Connect to the physical robot via serial (`COM4`, 230400 baud)
+1. Connect to the Pico via serial (`COM4`, 230400 baud)
 2. Start a smooth ramp from 90° to the current simulation position
 3. Stream joint angles to the robot at 50Hz
-
-> Make sure the Raspberry Pi Pico is connected and the correct COM port is set in `IsaacRupertBrain.py`.
 
 ---
 
@@ -68,28 +113,40 @@ Rupert is fully 3D-printable. All parts use **M3 screws**. STL and USD files are
 |---|---|
 | Microcontroller | Raspberry Pi Pico 2 |
 | Motor driver | [Kitronik Simply Robotics Motor Driver Board for Raspberry Pi Pico](https://kitronik.co.uk/products/5331-simply-robotics-motor-driver-board-for-raspberry-pi-pico) |
-| Servos (base, wrist, gripper) | SG92R — 9g micro servo |
+| Servos (base, wrist, gripper) | SG92R / SG90 — 9g micro servo |
 | Servos (shoulder, elbow) | MG996R — metal gear, higher torque |
 | Communication | USB Serial, 230400 baud |
 | Fasteners | M3 screws |
 
 ---
 
-## Known Issues & Roadmap
+## Known Issues
 
 Rupert is a work in progress. These are the known limitations currently being addressed:
 
 ### Physical
 
-- **Shoulder / Elbow torque** — Even with MG996R servos, the arm length generates more torque than the servos can handle. Current movements in these joints are unreliable under load. The planned fix is to shorten the arm and forearm segments to reduce the required torque.
+- **Shoulder / Elbow torque** — Even with MG996R servos, the arm length generates more torque than the servos can handle. Movements in these joints are unreliable under load. Planned fix: shorten arm and forearm to reduce required torque.
 
 - **Gripper grip strength** — The current gripper design does not hold objects reliably. For testing, use very lightweight objects (paper, foam). A redesigned gripper with better mechanical advantage is planned.
 
 ### Software / Simulation
 
-- **Isaac Sim gripper joints** — The gripper joint connections in `IsaacRupert.usd` have structural issues. Depending on the movement, they can cause the simulation to crash. Needs a clean URDF/USD rebuild of the gripper assembly.
+- **Isaac Sim gripper joints** — The gripper joint connections in `IsaacRupert.usd` have structural issues that can crash the simulation depending on the movement. Needs a clean USD rebuild of the gripper assembly.
 
-- **Ground constraint artifact** — To prevent Rupert from tipping over in simulation, the base is fixed to the ground plane. This creates unnatural behavior in some poses. A proper base mass/inertia model is the correct fix.
+- **Ground constraint artifact** — The base is fixed to the ground plane to prevent tipping, which creates unnatural behavior in some poses. A proper base mass/inertia model is the correct fix.
+
+- **PyBullet / RL is 2-DOF only** — The training environment and PyBullet scripts model a simplified 2-joint version of Rupert. Full 5-DOF RL environment is planned.
+
+---
+
+## Roadmap
+
+- [ ] **Isaac Sim MCP** — MCP server using the Omniverse API to let Claude control the simulation directly, closing the loop between natural language and sim-to-real
+- [ ] **Computer vision module** — Low-cost webcam integration for spatial awareness, with optional basic radar assist, so Rupert can perceive and react to objects around it
+- [ ] **Full 5-DOF RL environment** — Extend the Gymnasium environment to the complete arm assembly
+- [ ] **Shorter arm/forearm** — Redesign to reduce torque on shoulder and elbow joints
+- [ ] **Gripper redesign** — Better mechanical advantage for reliable grasping
 
 ---
 
@@ -101,6 +158,8 @@ cd rupert
 pip install -r requirements.txt
 cp .env.example .env   # add your API keys if using RupertPhysicalAI or Autogen
 ```
+
+Flash the firmware to the Pico separately via Thonny or `mpremote copy firmware/pico_servo_protected.py :main.py`.
 
 ---
 
