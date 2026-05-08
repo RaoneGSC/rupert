@@ -23,6 +23,10 @@ Rupert is split into two layers:
 PC (Brain)  ──── USB Serial (230400 baud) ────  Pico 2 (Firmware)  ──── PWM ────  Servos
 ```
 
+<p align="center">
+  <img src="docs/images/architecture.jpg" width="800" alt="Rupert Architecture Diagram"/>
+</p>
+
 ---
 
 ## Firmware — Peripheral Nervous System
