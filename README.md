@@ -45,9 +45,9 @@ Or `ERR,FORMAT` / `ERR,<message>` on failure. On startup it prints `READY`.
 
 | Pin | Joint | Servo | Notes |
 |---|---|---|---|
-| 15 | Base | SG92R | horizontal rotation |
-| 14 | Shoulder | MG90S | metal gear — higher load area |
-| 13 | Elbow | SG92R | |
+| 15 | Base | SG92R | carbon fiber gears — handles higher torque |
+| 14 | Shoulder | MG90S | metal gear — highest load area |
+| 13 | Elbow | SG92R | carbon fiber gears — handles higher torque |
 | 12 | Wrist | SG90 | opens/closes gripper |
 | 19 | Gripper | SG90 | wrist rotation |
 
@@ -113,9 +113,9 @@ Rupert is fully 3D-printable. All parts use **M3 screws**. STL and USD files are
 |---|---|
 | Microcontroller | Raspberry Pi Pico 2 |
 | Motor driver | [Kitronik Simply Robotics Motor Driver Board for Raspberry Pi Pico](https://kitronik.co.uk/products/5331-simply-robotics-motor-driver-board-for-raspberry-pi-pico) |
-| Base servo (pin 15) | SG92R |
-| Shoulder servo (pin 14) | MG90S — metal gear, handles higher torque |
-| Elbow servo (pin 13) | SG92R |
+| Base servo (pin 15) | SG92R — carbon fiber gears |
+| Shoulder servo (pin 14) | MG90S — metal gear, highest load area |
+| Elbow servo (pin 13) | SG92R — carbon fiber gears |
 | Wrist servo (pin 12) | SG90 |
 | Gripper servo (pin 19) | SG90 |
 | Communication | USB Serial, 230400 baud |
