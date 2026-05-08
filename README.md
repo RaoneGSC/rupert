@@ -57,6 +57,33 @@ Or `ERR,FORMAT` / `ERR,<message>` on failure. On startup it prints `READY`.
 
 ---
 
+## Kinematics
+
+Rupert is a **5-DOF serial manipulator** with the following joint chain:
+
+| Joint | Index | Motion | Range | Servo |
+|---|---|---|---|---|
+| Base | 0 | Rotation (yaw) | 5° – 175° | SG92R |
+| Shoulder | 1 | Pitch | 5° – 160° | MG90S |
+| Elbow | 2 | Pitch | 5° – 175° | SG92R |
+| Wrist | 3 | Roll | 0° – 180° | SG90 |
+| Gripper | 4 | Open / Close | 0° – 180° | SG90 |
+
+**Kinematic chain:**
+
+```
+World → Base (yaw) → Shoulder (pitch) → Elbow (pitch) → Wrist (roll) → Gripper (end-effector)
+```
+
+- **Base** rotates the entire arm horizontally around the Z axis (yaw)
+- **Shoulder + Elbow** form a planar 2-DOF arm in the vertical plane, controlling reach and height via two pitch joints
+- **Wrist** rolls the gripper assembly around the forearm axis, allowing orientation of the end-effector
+- **Gripper** is a parallel jaw mechanism actuated by a single servo
+
+The arm operates in a **polar coordinate workspace** — the base angle sets the azimuth, while shoulder and elbow angles define the position in the vertical plane. No inverse kinematics solver is currently implemented; control is done by direct joint angle commands.
+
+---
+
 ## Brain Modules
 
 Rupert has multiple control interfaces, each in `src/brain/`:
