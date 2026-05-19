@@ -91,13 +91,35 @@ Rupert has multiple control interfaces, each in `src/brain/`:
 | File | Description |
 |---|---|
 | `IsaacRupertBrain.py` | **Main sim-to-real bridge** — reads joint positions from Isaac Sim and streams them to the Pico via serial |
+| `IsaacBridgeScript.py` | **Isaac Sim TCP bridge** — paste into Isaac Script Editor; opens a socket on port 9877 so the MCP can control the simulation thread-safely |
 | `RupertBrainV3.py` | Keyboard-based direct control of the physical robot |
 | `RupertBrainPyBulletV2.py` | PyBullet simulation + serial bridge ⚠️ partial assembly (2-DOF only) |
 | `RupertBrainPyBulletV1.py` | First PyBullet prototype ⚠️ partial assembly |
 | `RupertPhysicalAI.py` | Natural language control via LangChain + Groq |
-| `src/mcp/RupertMCP.py` | MCP server — control Rupert directly from Claude Desktop |
 
 > ⚠️ The PyBullet scripts and RL training environment (`src/training/`) model a **partial, 2-DOF version** of Rupert, not the full 5-DOF assembly. Full-assembly RL training is on the roadmap.
+
+---
+
+## MCP Servers
+
+Rupert exposes three [MCP](https://modelcontextprotocol.io/) servers that let Claude Desktop control the robot directly:
+
+| File | Server name | Description |
+|---|---|---|
+| `src/mcp/RupertMCP.py` | `rupert` | Serial servo control — `move_servo`, `move_sequence`, `center_all`, `current_position` |
+| `src/mcp/RupertVisionMCP.py` | `rupert-vision` | Webcam computer vision — captures frames Claude can see, monitors motion, detects Rupert position via blue mat anchor |
+| `src/mcp/IsaacUSDMCP.py` | `isaac-usd` | Isaac Sim control — connects to `IsaacBridgeScript.py` running inside Isaac, exposes scene inspection and drive control |
+
+### Claude Code slash commands
+
+Three project-scoped commands live in `.claude/commands/`:
+
+| Command | Description |
+|---|---|
+| `/rupert-mover <text>` | Interprets a natural-language movement command and executes it via the `rupert` MCP |
+| `/rupert-visao [goal]` | Full vision-action loop: starts webcam, moves arm, waits for motion to stop, checks result visually, fine-tunes |
+| `/rupert-calibrar` | Runs each servo through its full range with camera feedback, reports OK / problem per joint |
 
 ---
 
@@ -133,6 +155,31 @@ The script will:
 1. Connect to the Pico via serial (`COM4`, 230400 baud)
 2. Start a smooth ramp from 90° to the current simulation position
 3. Stream joint angles to the robot at 50Hz
+
+### Step 4 (optional) — Enable Claude control via MCP
+
+To let Claude Desktop control the simulation directly, also run `src/brain/IsaacBridgeScript.py` in the Script Editor. It opens a TCP socket on `localhost:9877` and exposes a thread-safe command queue so the `isaac-usd` MCP can inspect the scene and set drive targets without touching Isaac's USD APIs from the wrong thread.
+
+Available bridge commands: `resumo`, `listar_prims`, `inspecionar`, `obter_juntas`, `buscar_prims`, `definir_drive`, `resetar_drives`, `articulacoes`.
+
+---
+
+## Computer Vision
+
+Rupert uses a low-cost USB webcam as a visual sensor. Two components handle this:
+
+- **`src/mcp/RupertVisionMCP.py`** — MCP server that returns `ImageContent` frames so Claude can see the robot directly. Supports continuous background monitoring, motion detection (frame-diff), and position detection.
+- **`scripts/teste_visao_rupert.py`** — Standalone real-time test window (OpenCV). Run this to tune detection before using the MCP. Keyboard shortcuts: `O`=YOLO, `A`=ArUco, `M`=motion mask, `C`=debug masks, `S`=screenshot, `Q`=quit.
+
+### Detection strategy
+
+The robot sits on a **blue cutting mat** which acts as a position anchor:
+
+1. Detect the blue-green mat via HSV segmentation (`H 78–115`)
+2. Project the robot bounding-box above the mat
+3. Confirm with SG90 servo blobs in the ROI (`H 95–140`)
+
+If detection fails, use `calibrar_deteccao()` via the MCP (or press `C` in the test script) to see the HSV masks, then adjust thresholds with `ajustar_hsv_tapete()` at runtime.
 
 ---
 
@@ -176,8 +223,8 @@ Rupert is a work in progress. These are the known limitations currently being ad
 
 ## Roadmap
 
-- [ ] **Isaac Sim MCP** — MCP server using the Omniverse API to let Claude control the simulation directly, closing the loop between natural language and sim-to-real
-- [ ] **Computer vision module** — Low-cost webcam integration for spatial awareness, with optional basic radar assist, so Rupert can perceive and react to objects around it
+- [x] **Isaac Sim MCP** — `IsaacUSDMCP.py` + `IsaacBridgeScript.py`: Claude can inspect the scene, read joints, and set drive targets directly from Claude Desktop
+- [x] **Computer vision module** — `RupertVisionMCP.py`: webcam integration with blue-mat anchor detection, motion sensing, and `ImageContent` frames Claude can see natively; `scripts/teste_visao_rupert.py` for threshold tuning
 - [ ] **Full 5-DOF RL environment** — Extend the Gymnasium environment to the complete arm assembly
 - [ ] **Shorter arm/forearm** — Redesign to reduce torque on shoulder and elbow joints
 - [ ] **Gripper redesign** — Better mechanical advantage for reliable grasping
